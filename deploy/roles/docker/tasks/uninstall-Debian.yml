@@ -1,0 +1,36 @@
+---
+###########################################################################
+# Docker Uninstallation - Debian/Ubuntu
+###########################################################################
+- name: Remove Docker packages
+  apt:
+    name:
+      - docker
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+      - docker-ce-rootless-extras
+      - docker-engine
+      - docker.io
+      - containerd
+      - runc
+    state: absent
+    update_cache: yes
+    autoremove: yes
+    purge: yes
+
+- name: Remove Docker GPG key
+  file:
+    path: /etc/apt/keyrings/docker.gpg
+    state: absent
+
+- name: Remove Docker repository
+  file:
+    path: /etc/apt/sources.list.d/docker.list
+    state: absent
+
+- name: Update APT cache after repository removal
+  apt:
+    update_cache: yes

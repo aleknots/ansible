@@ -1,0 +1,14 @@
+---
+###########################################################################
+# Docker Role - Main Tasks
+###########################################################################
+- name: Docker Management
+  block:
+    - name: Include Docker installation tasks
+      include_tasks: install.yml
+      when: docker_action is not defined or docker_action == 'install'
+
+    - name: Include Docker uninstallation tasks
+      include_tasks: uninstall.yml
+      when: docker_action is defined and docker_action == 'uninstall'
+  tags: [docker]

@@ -1,0 +1,179 @@
+---
+# ------------------------------------------------------------------------------
+# 1. Operating System Configuration (Kernel, Swap, SELinux, Sysctl)
+# ------------------------------------------------------------------------------
+- name: Disable Swap at runtime
+  ansible.builtin.command: swapoff -a
+  when: ansible_facts['swaptotal_mb'] > 0
+  changed_when: false
+
+- name: Remove Swap entry from /etc/fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#].*?\sswap\s+sw\s+.*)$'
+    replace: '# \1'
+
+- name: Configure SELinux to Permissive
+  ansible.posix.selinux:
+    policy: targeted
+    state: permissive
+
+- name: Load required kernel modules for Kubernetes
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - overlay
+    - br_netfilter
+
+- name: Ensure modules load automatically on boot
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/k8s.conf
+    content: |
+      overlay
+      br_netfilter
+    mode: '0644'
+
+- name: Configure Sysctl parameters for Kubernetes
+  ansible.posix.sysctl:
+    name: "{{ item.name }}"
+    value: "{{ item.value }}"
+    state: present
+    sysctl_set: true
+    reload: true
+  loop:
+    - { name: 'net.bridge.bridge-nf-call-iptables', value: '1' }
+    - { name: 'net.bridge.bridge-nf-call-ip6tables', value: '1' }
+    - { name: 'net.ipv4.ip_forward', value: '1' }
+
+- name: Ensure firewalld service is stopped and disabled
+  ansible.builtin.systemd:
+    name: firewalld
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Flush strict default firewall rules
+  ansible.builtin.shell: |
+    iptables -F
+    iptables-save > /etc/iptables/rules.v4 || true
+  changed_when: false
+
+# ------------------------------------------------------------------------------
+# 2. System Packages Installation (Oracle Linux 9 - DNF)
+# ------------------------------------------------------------------------------
+- name: Install Oracle Linux EPEL repository & dnf plugins
+  ansible.builtin.dnf:
+    name:
+      - oracle-epel-release-el9
+      - dnf-plugins-core
+    state: present
+    disable_gpg_check: true
+
+- name: Enable Node.js 20 LTS DNF module stream
+  ansible.builtin.shell: |
+    dnf module reset -y nodejs
+    dnf module enable -y nodejs:20
+  changed_when: false
+
+- name: Add Docker CE repository
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: '0644'
+
+- name: Import Docker CE GPG key
+  ansible.builtin.rpm_key:
+    key: https://download.docker.com/linux/centos/gpg
+    state: present
+  ignore_errors: true
+
+- name: Install core system dependencies, MySQL Client and containerd
+  ansible.builtin.dnf:
+    name:
+      - curl
+      - git
+      - wget
+      - ca-certificates
+      - gnupg2
+      - containerd.io
+      - conntrack-tools
+      - ipset
+      - procps-ng
+      - tar
+      - gzip
+      - net-tools
+      - nmap
+      - nodejs
+      - npm
+      - tmux
+      - traceroute
+      - mysql
+      - zip
+      - unzip
+      - jq
+      - bind-utils
+      - iputils
+      - tree
+    state: present
+    update_cache: true
+    disable_gpg_check: true
+
+- name: Install btop CLI (Resource Monitor TUI)
+  ansible.builtin.shell: |
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "aarch64" ]; then ARCH_NAME="aarch64"; else ARCH_NAME="x86_64"; fi
+    BTOP_VERSION=$(curl -s https://api.github.com/repos/aristocratos/btop/releases/latest | grep tag_name | cut -d '"' -f 4)
+    curl -sL https://github.com/aristocratos/btop/releases/download/${BTOP_VERSION}/btop-${ARCH_NAME}-unknown-linux-musl.tar.gz | tar -xz -C /tmp
+    cp /tmp/btop/bin/btop /usr/local/bin/btop
+    chmod +x /usr/local/bin/btop
+  args:
+    creates: /usr/local/bin/btop
+
+# ------------------------------------------------------------------------------
+# 3. Containerd Runtime Configuration
+# ------------------------------------------------------------------------------
+- name: Create containerd configuration directory
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: '0755'
+
+- name: Configure containerd with SystemdCgroup = true
+  ansible.builtin.shell: |
+    containerd config default | tee /etc/containerd/config.toml > /dev/null
+    sed -i 's/SystemdCgroup = false/SystemdCgroup = true/g' /etc/containerd/config.toml
+  notify: Restart Containerd
+
+- name: Ensure containerd service is enabled and running
+  ansible.builtin.systemd:
+    name: containerd
+    state: started
+    enabled: true
+
+# ------------------------------------------------------------------------------
+# 4. Kubernetes v1.36 Installation (RPM / DNF)
+# ------------------------------------------------------------------------------
+- name: Add official Kubernetes v1.36 YUM/RPM repository
+  ansible.builtin.yum_repository:
+    name: kubernetes
+    description: Official Kubernetes Repository
+    baseurl: https://pkgs.k8s.io/core:/stable:/v1.36/rpm/
+    enabled: true
+    gpgcheck: true
+    gpgkey: https://pkgs.k8s.io/core:/stable:/v1.36/rpm/repodata/repomd.xml.key
+    exclude: kubelet kubeadm kubectl cri-tools kubernetes-cni
+
+- name: Install Kubelet, Kubeadm, and Kubectl
+  ansible.builtin.dnf:
+    name:
+      - kubelet
+      - kubeadm
+      - kubectl
+    disable_excludes: kubernetes
+    state: present
+
+- name: Ensure Kubelet service is enabled in systemd
+  ansible.builtin.systemd:
+    name: kubelet
+    enabled: true

@@ -1,0 +1,32 @@
+---
+###########################################################################
+# Docker Uninstallation - RedHat/CentOS
+###########################################################################
+- name: Remove Docker packages
+  yum:
+    name:
+      - docker
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+      - docker-ce-rootless-extras
+      - docker-engine
+      - docker-client
+      - docker-client-latest
+      - docker-common
+      - docker-latest
+      - docker-latest-logrotate
+      - docker-logrotate
+    state: absent
+    autoremove: yes
+
+- name: Remove Docker repository
+  yum_repository:
+    name: docker-ce
+    state: absent
+
+- name: Clean YUM cache
+  command: yum clean all
+  changed_when: false

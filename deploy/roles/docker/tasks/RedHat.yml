@@ -1,0 +1,33 @@
+---
+###########################################################################
+# Docker Installation - RedHat/CentOS/Oracle Linux 9
+###########################################################################
+- name: Install yum-utils and dnf plugins
+  ansible.builtin.dnf:
+    name:
+      - dnf-plugins-core
+    state: present
+    disable_gpg_check: true
+
+- name: Add Docker CE repository
+  ansible.builtin.get_url:
+    url: https://download.docker.com/linux/centos/docker-ce.repo
+    dest: /etc/yum.repos.d/docker-ce.repo
+    mode: '0644'
+
+- name: Import Docker CE GPG key
+  ansible.builtin.rpm_key:
+    key: https://download.docker.com/linux/centos/gpg
+    state: present
+  ignore_errors: true
+
+- name: Install Docker CE and Compose plugin
+  ansible.builtin.dnf:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+      - docker-buildx-plugin
+      - docker-compose-plugin
+    state: present
+    disable_gpg_check: true

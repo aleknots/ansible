@@ -1,0 +1,22 @@
+# Example Ansible Inventory for OCI Multi-Node Kubernetes Cluster
+# Copy this template to env/hosts for local executions:
+# cp deploy/env/hosts.example deploy/env/hosts
+
+[bastion]
+srv-bst-01 ansible_host=<YOUR_PUBLIC_BASTION_IP>
+
+[master]
+srv-k8s-01 ansible_host=10.0.2.11 internal_ip=10.0.2.11
+
+[workers]
+srv-k8s-02 ansible_host=10.0.2.12 internal_ip=10.0.2.12
+srv-k8s-03 ansible_host=10.0.2.13 internal_ip=10.0.2.13
+
+[k8s_cluster:children]
+master
+workers
+
+[all:vars]
+ansible_user=opc
+ansible_ssh_private_key_file=~/.ssh/id_rsa
+ansible_python_interpreter=/usr/bin/python3

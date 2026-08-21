@@ -1,0 +1,76 @@
+# SplunkForwarder Installation
+#
+#wget -O splunkforwarder-9.0.0-6818ac46f2ec-linux-2.6-x86_64.rpm "https://download.splunk.com/products/universalforwarder/releases/9.0.0/linux/splunkforwarder-9.0.0-6818ac46f2ec-linux-2.6-x86_64.rpm"
+
+#wget -O splunkforwarder-9.0.1-82c987350fde-linux-2.6-amd64.deb "https://download.splunk.com/products/universalforwarder/releases/9.0.1/linux/splunkforwarder-9.0.1-82c987350fde-linux-2.6-amd64.deb"
+---
+- name: "Install Splunk Forwarder"
+  become: true
+  #become_method: sudo
+  #become_user: root
+  apt:
+    deb: "https://download.splunk.com/products/universalforwarder/releases/9.0.1/linux/splunkforwarder-9.0.1-82c987350fde-linux-2.6-amd64.deb"
+
+
+- name: "Start Splunk forwarder service"
+  command: "/opt/splunkforwarder/bin/splunk start --accept-license --answer-yes --auto-ports --no-prompt"
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  #register: splunk_license_result
+  #changed_when: splunk_license_result.rc == 0
+  #failed_when: splunk_license_result.rc != 0
+  become: true
+  #become_method: sudo
+ # become_user: splunk
+
+  #/splunk enable boot-start -user splunk -systemd-managed 0 --accept-license --answer-yes --auto-ports --no-prompt
+
+- name: "Set Heavy Forwarder"
+  command: "/opt/splunkforwarder/bin/splunk set deploy-poll 10.50.0.73:8089 -auth admin:changeme"
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  #register: splunk_set_server_result
+  #changed_when: splunk_set_server_result.rc != 0
+  #failed_when: splunk_set_server_result.rc == 0
+  become: true
+  #become_method: sudo
+  #become_user: splunk
+
+
+- name: "Stop service"
+  command: "/opt/splunkforwarder/bin/splunk stop"
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  become: true
+  #become_method: sudo
+ # become_user: splunk
+
+- name: "Enable boot-start"
+  command: "/opt/splunkforwarder/bin/splunk enable boot-start"
+  changed_when: false
+  failed_when: false
+  check_mode: false
+ # register: splunk_boot_result
+  become: true
+  #become_method: sudo
+  #become_user: splunk
+
+
+- name: "Restart service"
+  command: "/opt/splunkforwarder/bin/splunk restart"
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  become: true
+  #become_method: sudo
+ # become_user: splunk
+- name: "Check Splunk forwarder service"
+  command: "/opt/splunkforwarder/bin/splunk status"
+  register: service_splunk_status
+
+- name: "Report Splunk forwarder Status"
+  debug:
+    var: service_splunk_status.stdout_lines

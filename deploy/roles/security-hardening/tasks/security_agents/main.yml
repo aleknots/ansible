@@ -1,0 +1,6 @@
+---
+- name: "Splunk Forwarder | Security Agents"
+  include_tasks: splunk-forwarder.yaml
+
+# - name: "Nessus agent | Security Agents"
+#   include_tasks: nessus-agent.yaml

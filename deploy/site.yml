@@ -1,0 +1,76 @@
+---
+# ==============================================================================
+# Ansible Playbook: Site Deployment (Master Entrypoint)
+# Description: Unified entry point for OS Hardening, Docker, Jenkins & K8s Cluster Nodes.
+# ==============================================================================
+
+- name: Baseline OS Security Hardening
+  hosts: k8s_cluster
+  become: true
+  gather_facts: true
+  tags:
+    - security
+    - hardening
+  roles:
+    - role: security-hardening
+
+- name: Baseline OS Packages & Utilities
+  hosts: k8s_cluster
+  become: true
+  gather_facts: true
+  tags:
+    - base
+    - packages
+  roles:
+    - role: base-packages
+
+- name: Container Runtime Provisioning (Docker)
+  hosts: k8s_cluster
+  become: true
+  gather_facts: true
+  tags:
+    - docker
+    - container
+  roles:
+    - role: docker
+
+- name: CI/CD Master Nodes Configuration (Jenkins)
+  hosts: master
+  become: true
+  gather_facts: true
+  tags:
+    - cicd
+    - jenkins
+  roles:
+    - role: jenkins
+
+# ------------------------------------------------------------------------------
+# Native Kubernetes Multi-Node Cluster Deployment (OCI / Oracle Linux 9)
+# ------------------------------------------------------------------------------
+- name: PLAY 1 - OS Preparation, SRE Tooling, and Container Runtime on All K8s Nodes
+  hosts: k8s_cluster
+  become: true
+  gather_facts: true
+  tags:
+    - k8s
+    - oci
+  roles:
+    - role: k8s-node-setup
+
+- name: PLAY 2 - Control Plane Initialization (Master Node)
+  hosts: master
+  become: true
+  tags:
+    - k8s
+    - oci
+  roles:
+    - role: k8s-control-plane
+
+- name: PLAY 3 - Worker Nodes Joining the Cluster
+  hosts: workers
+  become: true
+  tags:
+    - k8s
+    - oci
+  roles:
+    - role: k8s-worker

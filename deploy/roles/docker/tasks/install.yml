@@ -1,0 +1,34 @@
+---
+###########################################################################
+# Docker Installation - Main Task
+###########################################################################
+- name: Docker Installation
+  block:
+    - name: Include OS-specific Docker installation tasks
+      include_tasks: "{{ ansible_os_family }}.yml"
+
+    - name: Ensure Docker service is started and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Ensure containerd service is started and enabled
+      service:
+        name: containerd
+        state: started
+        enabled: yes
+
+    - name: Create docker group
+      group:
+        name: docker
+        state: present
+
+    - name: Add users to docker group
+      user:
+        name: "{{ item }}"
+        groups: docker
+        append: yes
+      loop: "{{ docker_users | default(['opc', 'ubuntu']) }}"
+      ignore_errors: yes
+  tags: [docker-install]

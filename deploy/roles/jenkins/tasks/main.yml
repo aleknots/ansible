@@ -1,0 +1,129 @@
+---
+###########################################################################
+# Jenkins Installation
+###########################################################################
+- name: Jenkins Installation
+  block:
+    - name: System preparation - RedHat family
+      block:
+        - name: Upgrade system packages
+          yum:
+            name: "*"
+            state: latest
+
+        - name: Install EPEL repository
+          yum:
+            name: oracle-epel-release-el9
+            state: present
+            disable_gpg_check: true
+          when: ansible_distribution != 'Amazon'
+
+        - name: Install EPEL for Amazon Linux
+          shell: amazon-linux-extras install epel -y
+          when: ansible_distribution == 'Amazon'
+
+        - name: Install Jenkins prerequisites
+          yum:
+            name:
+              - daemonize
+              - netcat
+              - tree
+              - java-17-openjdk-devel
+              - wget
+              - curl
+            state: present
+      when: ansible_os_family == 'RedHat'
+
+    - name: System preparation - Debian family
+      block:
+        - name: Update APT cache
+          apt:
+            update_cache: yes
+            cache_valid_time: 3600
+
+        - name: Upgrade system packages
+          apt:
+            upgrade: dist
+
+        - name: Install Jenkins prerequisites
+          apt:
+            name:
+              - daemonize
+              - netcat-openbsd
+              - tree
+              - openjdk-17-jre
+              - wget
+              - curl
+              - gnupg
+            state: present
+      when: ansible_os_family == 'Debian'
+
+    - name: Jenkins repository setup - RedHat family
+      block:
+        - name: Import Jenkins GPG key
+          rpm_key:
+            state: present
+            key: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+
+        - name: Add Jenkins repository
+          yum_repository:
+            name: jenkins
+            description: Jenkins-stable
+            baseurl: http://pkg.jenkins.io/redhat-stable
+            gpgcheck: yes
+            gpgkey: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+            enabled: yes
+      when: ansible_os_family == 'RedHat'
+
+    - name: Jenkins repository setup - Debian family
+      block:
+        - name: Create keyrings directory
+          file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: '0755'
+
+        - name: Download Jenkins GPG key
+          shell: curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | gpg --dearmor -o /etc/apt/keyrings/jenkins.gpg
+          args:
+            creates: /etc/apt/keyrings/jenkins.gpg
+
+        - name: Add Jenkins repository
+          apt_repository:
+            repo: "deb [signed-by=/etc/apt/keyrings/jenkins.gpg] https://pkg.jenkins.io/debian-stable binary/"
+            filename: jenkins
+            state: present
+            update_cache: yes
+      when: ansible_os_family == 'Debian'
+
+    - name: Install Jenkins - RedHat family
+      yum:
+        name: jenkins
+        state: present
+        update_cache: yes
+      when: ansible_os_family == 'RedHat'
+
+    - name: Install Jenkins - Debian family
+      apt:
+        name: jenkins
+        state: present
+        update_cache: yes
+      when: ansible_os_family == 'Debian'
+
+    - name: Reload systemd daemon
+      systemd:
+        daemon_reload: yes
+
+    - name: Enable and start Jenkins service
+      service:
+        name: jenkins
+        enabled: yes
+        state: started
+
+    - name: Wait for Jenkins to start
+      wait_for:
+        port: 8080
+        host: localhost
+        delay: 30
+        timeout: 300
+  tags: [jenkins]

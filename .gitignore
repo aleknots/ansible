@@ -1,0 +1,33 @@
+# Local Ansible, Inventories and SSH configurations
+ansible.cfg
+**/ansible.cfg
+ssh.config
+**/ssh.config
+deploy/env/hosts
+**/hosts
+**/hosts.ini
+**/inventory*.ini
+**/inventory*.yml
+
+# Keep example templates tracked in Git
+!**/hosts.example
+!**/hosts.ini.example
+!**/ansible.cfg.example
+!**/ssh.config.example
+!**/*.example
+
+# Ansible retry & log files
+*.retry
+*.log
+ansible.log
+
+# Python & Virtual Environments
+pyenv/
+.venv/
+__pycache__/
+*.pyc
+
+# Keys, certificates, and credentials
+*.pem
+*.key
+id_*

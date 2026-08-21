@@ -1,0 +1,33 @@
+---
+###########################################################################
+# Docker Uninstallation
+###########################################################################
+- name: Docker Uninstallation
+  block:
+    - name: Stop Docker service
+      service:
+        name: docker
+        state: stopped
+      ignore_errors: yes
+
+    - name: Include OS-specific Docker uninstallation tasks
+      include_tasks: "uninstall-{{ ansible_os_family }}.yml"
+
+    - name: Remove Docker data directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /var/lib/docker
+        - /var/lib/containerd
+        - /etc/docker
+        - /etc/apparmor.d/docker
+        - /data/docker
+        - /opt/docker
+
+    - name: Remove Docker group
+      group:
+        name: docker
+        state: absent
+      ignore_errors: yes
+  tags: [docker-uninstall]

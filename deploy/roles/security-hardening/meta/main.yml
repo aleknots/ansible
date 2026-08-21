@@ -1,0 +1,26 @@
+---
+
+galaxy_info:
+    description: "Apply the Ubuntu 22 CIS benchmarks"
+    company: "Company-Name"
+    license: MIT
+    namespace: company
+    role_name: ubuntu22_cis
+    min_ansible_version: 2.12.1
+    platforms:
+        - name: Ubuntu
+          versions:
+              - jammy
+    galaxy_tags:
+        - system
+        - security
+        - cis
+        - hardening
+        - benchmark
+        - compliance
+        - ubuntu22
+collections:
+    - community.general
+    - community.crypto
+    - ansible.posix
+dependencies: []

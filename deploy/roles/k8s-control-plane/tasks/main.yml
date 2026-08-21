@@ -1,0 +1,118 @@
+---
+# ------------------------------------------------------------------------------
+# 1. Role Tasks: k8s-control-plane (Master Node Initialization)
+# ------------------------------------------------------------------------------
+- name: Check if Kubernetes cluster has already been initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadmin_conf
+
+- name: Initialize Kubernetes cluster with kubeadm init
+  ansible.builtin.command: >
+    kubeadm init
+    --apiserver-advertise-address={{ internal_ip }}
+    --pod-network-cidr=10.244.0.0/16
+  when: not kubeadmin_conf.stat.exists
+  register: kubeadm_init_output
+
+- name: Create .kube directory for operating system user (opc)
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0755'
+
+- name: Copy admin.conf to user kubeconfig location
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    remote_src: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: '0600'
+
+- name: Apply Flannel CNI network plugin
+  ansible.builtin.command: kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
+  environment:
+    KUBECONFIG: "/home/{{ ansible_user }}/.kube/config"
+  changed_when: false
+
+- name: Generate kubeadm join command for worker nodes
+  ansible.builtin.command: kubeadm token create --print-join-command
+  register: kubeadm_join_cmd
+  changed_when: false
+
+- name: Save join command as a host fact
+  ansible.builtin.set_fact:
+    join_command: "{{ kubeadm_join_cmd.stdout }}"
+
+# ------------------------------------------------------------------------------
+# 2. Master-Exclusive SRE, DevOps & Database CLI Tools
+# ------------------------------------------------------------------------------
+- name: Install PostgreSQL Client CLI on Master Node
+  ansible.builtin.dnf:
+    name:
+      - postgresql
+    state: present
+    disable_gpg_check: true
+
+- name: Install K9s CLI (Kubernetes TUI) on Master Node
+  ansible.builtin.shell: |
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "aarch64" ]; then ARCH_NAME="arm64"; else ARCH_NAME="amd64"; fi
+    K9S_VERSION=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | grep tag_name | cut -d '"' -f 4)
+    curl -sL https://github.com/derailed/k9s/releases/download/${K9S_VERSION}/k9s_Linux_${ARCH_NAME}.tar.gz | tar -xz -C /tmp
+    mv /tmp/k9s /usr/local/bin/k9s
+    chmod +x /usr/local/bin/k9s
+  args:
+    creates: /usr/local/bin/k9s
+
+- name: Install Argo CD CLI
+  ansible.builtin.shell: |
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "aarch64" ]; then ARCH_NAME="arm64"; else ARCH_NAME="amd64"; fi
+    curl -sSL -o /usr/local/bin/argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-${ARCH_NAME}
+    chmod +x /usr/local/bin/argocd
+  args:
+    creates: /usr/local/bin/argocd
+
+- name: Install Helm CLI
+  ansible.builtin.shell: |
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "aarch64" ]; then ARCH_NAME="arm64"; else ARCH_NAME="amd64"; fi
+    HELM_VERSION=$(curl -s https://api.github.com/repos/helm/helm/releases/latest | grep tag_name | cut -d '"' -f 4)
+    curl -sL https://get.helm.sh/helm-${HELM_VERSION}-linux-${ARCH_NAME}.tar.gz | tar -xz -C /tmp
+    mv /tmp/linux-${ARCH_NAME}/helm /usr/local/bin/helm
+    chmod +x /usr/local/bin/helm
+  args:
+    creates: /usr/local/bin/helm
+
+- name: Install yq CLI
+  ansible.builtin.shell: |
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "aarch64" ]; then ARCH_NAME="arm64"; else ARCH_NAME="amd64"; fi
+    curl -sL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_${ARCH_NAME} -o /usr/local/bin/yq
+    chmod +x /usr/local/bin/yq
+  args:
+    creates: /usr/local/bin/yq
+
+- name: Install kubectx and kubens
+  ansible.builtin.shell: |
+    git clone https://github.com/ahmetb/kubectx /opt/kubectx || true
+    ln -sf /opt/kubectx/kubectx /usr/local/bin/kubectx
+    ln -sf /opt/kubectx/kubens /usr/local/bin/kubens
+  args:
+    creates: /usr/local/bin/kubectx
+
+- name: Install MongoDB Shell (mongosh)
+  ansible.builtin.shell: |
+    ARCH=$(uname -m)
+    if [ "$ARCH" = "aarch64" ]; then ARCH_NAME="arm64"; else ARCH_NAME="x64"; fi
+    MONGOSH_VER="2.3.8"
+    curl -sL https://downloads.mongodb.com/compass/mongosh-${MONGOSH_VER}-linux-${ARCH_NAME}.tgz | tar -xz -C /tmp
+    mv /tmp/mongosh-${MONGOSH_VER}-linux-${ARCH_NAME}/bin/mongosh /usr/local/bin/mongosh
+    chmod +x /usr/local/bin/mongosh
+    rm -rf /tmp/mongosh-${MONGOSH_VER}-linux-${ARCH_NAME}
+  args:
+    creates: /usr/local/bin/mongosh

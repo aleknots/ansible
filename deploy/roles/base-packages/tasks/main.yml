@@ -1,0 +1,78 @@
+---
+###########################################################################
+# Linux Apps Installation Debian/Ubuntu & RedHat/Oracle Linux 9
+###########################################################################
+- name: Linux Apps Installation
+  block:
+    - name: Update APT cache (Debian/Ubuntu)
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      when: ansible_os_family == 'Debian'
+
+    - name: Install essential Linux applications (Debian/Ubuntu)
+      apt:
+        name:
+          - vim
+          - curl
+          - wget
+          - ncdu
+          - tree
+          - python3-pip
+          - plocate
+          - mtr
+          - nmap
+          - neofetch
+          - net-tools
+          - network-manager
+          - gparted
+          - resolvconf
+          - jq
+          - httpie
+          - iftop
+          - iotop
+          - glances
+          - bash-completion
+          - tmux
+          - dnsutils
+          - btop
+          - speedtest-cli
+          - unzip
+          - fzf
+          - whois
+        state: present
+        install_recommends: yes
+      when: ansible_os_family == 'Debian'
+
+    - name: Install Oracle Linux EPEL repository & DNF plugins (RedHat / OL9)
+      ansible.builtin.dnf:
+        name:
+          - oracle-epel-release-el9
+          - dnf-plugins-core
+        state: present
+        disable_gpg_check: true
+      when: ansible_os_family == 'RedHat'
+
+    - name: Install essential Linux applications (RedHat / OL9)
+      ansible.builtin.dnf:
+        name:
+          - vim-enhanced
+          - curl
+          - wget
+          - ncdu
+          - tree
+          - python3-pip
+          - mtr
+          - nmap
+          - net-tools
+          - jq
+          - tmux
+          - bind-utils
+          - btop
+          - unzip
+          - zip
+          - fzf
+        state: present
+        disable_gpg_check: true
+      when: ansible_os_family == 'RedHat'
+  tags: [apps, base]

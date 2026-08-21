@@ -1,0 +1,73 @@
+###########################################################################
+# Ansible Configuration Template - DevOps / SRE Labs
+# Purpose: Optimized configuration for DevOps and SRE automation
+###########################################################################
+
+[defaults]
+
+# --- General Settings ---
+forks                   = 10
+log_path                = ./ansible.log
+executable              = /bin/bash
+timeout                 = 30
+host_key_checking       = False
+jinja2_native           = True
+module_name             = ping
+
+# --- Directories and Files ---
+inventory               = ./inventory-oci.ini
+roles_path              = ./roles
+remote_tmp              = /tmp
+local_tmp               = ~/.ansible/tmp
+
+# --- Warning Suppression ---
+deprecation_warnings    = False
+command_warnings        = False
+action_warnings         = False
+
+# --- User and Key Settings ---
+remote_user             = opc
+ask_pass                = False
+private_key_file        = ~/.ssh/id_rsa
+
+# --- Python Interpreter ---
+interpreter_python      = auto_silent
+
+# --- Output Callback ---
+stdout_callback         = default
+result_format           = yaml
+bin_ansible_callbacks   = True
+
+[privilege_escalation]
+become                  = True
+become_method           = sudo
+become_user             = root
+become_ask_pass         = False
+
+[ssh_connection]
+pipelining              = True
+transfer_method         = smart
+scp_if_ssh              = smart
+retries                 = 3
+ssh_args                = -o ControlMaster=auto -o ControlPersist=60s -o ControlPath=/tmp/ansible-%r@%h:%p -F ./ssh.config
+
+[inventory]
+enable_plugins          = host_list, script, auto, yaml, ini, toml
+cache                   = True
+cache_plugin            = memory
+cache_timeout           = 3600
+
+[colors]
+highlight               = white
+verbose                 = blue
+warn                    = bright purple
+error                   = red
+debug                   = dark gray
+deprecate               = purple
+skip                    = cyan
+unreachable             = red
+ok                      = green
+changed                 = yellow
+diff_add                = green
+diff_remove             = red
+diff_lines              = cyan

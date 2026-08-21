@@ -1,0 +1,61 @@
+###########################################################################
+# SSH Configuration - DevOps / SRE Labs Template
+# Purpose: Optimized SSH configuration for connections and Ansible automation
+###########################################################################
+
+# --- Global Settings for Labs ---
+Host *
+    # Disable strict host key checking (ideal for dynamic lab environments)
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+
+    # Performance & Keep-Alive Optimizations
+    TCPKeepAlive yes
+    ServerAliveInterval 60
+    ServerAliveCountMax 3
+
+    # SSH Connection Multiplexing (reuses sockets to speed up Ansible)
+    ControlMaster auto
+    ControlPersist 300s
+    ControlPath /tmp/ansible-%r@%h:%p
+
+    # Compression & Timeouts
+    Compression yes
+    ConnectTimeout 30
+
+    # SSH Key Authentication
+    PasswordAuthentication no
+    PubkeyAuthentication yes
+    LogLevel ERROR
+
+# --- Oracle Cloud Infrastructure (OCI - K8s Cluster & Bastion) ---
+# Bastion Host (Public Jump Box)
+Host oci-bastion srv-bst-01
+    HostName <PUBLIC_BASTION_IP>
+    User <USER>
+    IdentityFile ~/.ssh/id_rsa
+
+# Private K8s Nodes via ProxyJump
+Host srv-k8s-01
+    HostName <private_node1_ip>
+    User <USER>
+    IdentityFile ~/.ssh/id_rsa
+    ProxyJump srv-bst-01
+
+Host srv-k8s-02
+    HostName <private_node2_ip>
+    User <USER>
+    IdentityFile ~/.ssh/id_rsa
+    ProxyJump srv-bst-01
+
+Host srv-k8s-03
+    HostName <private_node3_ip>
+    User <USER>
+    IdentityFile ~/.ssh/id_rsa
+    ProxyJump srv-bst-01
+
+# Fallback Wildcard Rule for IP Ranges
+Host <private_k8s_subnet_ip>.*
+    User <USER>
+    IdentityFile ~/.ssh/id_rsa
+    ProxyJump srv-bst-01
