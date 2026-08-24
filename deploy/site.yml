@@ -1,7 +1,7 @@
 ---
 # ==============================================================================
-# Ansible Playbook: Site Deployment (Master Entrypoint)
-# Description: Unified entry point for OS Hardening, Docker, Jenkins & K8s Cluster Nodes.
+# Playbook Ansible: Implantação de Site (Ponto de Entrada Principal)
+# Descrição: Ponto de entrada unificado para Hardening de SO, Docker, Jenkins e Nós do Cluster K8s.
 # ==============================================================================
 
 - name: Baseline OS Security Hardening

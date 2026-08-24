@@ -1,6 +1,6 @@
 ---
 # ------------------------------------------------------------------------------
-# 1. Operating System Configuration (Kernel, Swap, SELinux, Sysctl)
+# 1. Configuração do Sistema Operacional (Kernel, Swap, SELinux, Sysctl)
 # ------------------------------------------------------------------------------
 - name: Disable Swap at runtime
   ansible.builtin.command: swapoff -a
@@ -60,7 +60,7 @@
   changed_when: false
 
 # ------------------------------------------------------------------------------
-# 2. System Packages Installation (Oracle Linux 9 - DNF)
+# 2. Instalação de Pacotes do Sistema (Oracle Linux 9 - DNF)
 # ------------------------------------------------------------------------------
 - name: Install Oracle Linux EPEL repository & dnf plugins
   ansible.builtin.dnf:
@@ -131,7 +131,7 @@
     creates: /usr/local/bin/btop
 
 # ------------------------------------------------------------------------------
-# 3. Containerd Runtime Configuration
+# 3. Configuração do Runtime Containerd
 # ------------------------------------------------------------------------------
 - name: Create containerd configuration directory
   ansible.builtin.file:
@@ -152,12 +152,12 @@
     enabled: true
 
 # ------------------------------------------------------------------------------
-# 4. Kubernetes v1.36 Installation (RPM / DNF)
+# 4. Instalação do Kubernetes v1.36 (RPM / DNF)
 # ------------------------------------------------------------------------------
 - name: Add official Kubernetes v1.36 YUM/RPM repository
   ansible.builtin.yum_repository:
     name: kubernetes
-    description: Official Kubernetes Repository
+    description: Repositório Oficial do Kubernetes
     baseurl: https://pkgs.k8s.io/core:/stable:/v1.36/rpm/
     enabled: true
     gpgcheck: true

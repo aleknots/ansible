@@ -1,5 +1,5 @@
-# Example Ansible Inventory for OCI Multi-Node Kubernetes Cluster
-# Copy this template to env/hosts for local executions:
+# Exemplo de Inventário Ansible para Cluster Kubernetes Multi-Nó na OCI
+# Copie este modelo para env/hosts para execuções locais:
 # cp deploy/env/hosts.example deploy/env/hosts
 
 [bastion]

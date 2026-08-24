@@ -1,6 +1,6 @@
 ---
 # ------------------------------------------------------------------------------
-# 1. Role Tasks: k8s-control-plane (Master Node Initialization)
+# 1. Tarefas da Role: k8s-control-plane (Inicialização do Nó Master)
 # ------------------------------------------------------------------------------
 - name: Check if Kubernetes cluster has already been initialized
   ansible.builtin.stat:
@@ -32,24 +32,6 @@
     group: "{{ ansible_user }}"
     mode: '0600'
 
-- name: Customize Cluster, User and Context names in kubeconfig
-  ansible.builtin.shell: |
-    python3 -c "
-    import yaml
-    cfg_path = '/home/{{ ansible_user }}/.kube/config'
-    with open(cfg_path, 'r') as f:
-        cfg = yaml.safe_load(f)
-    cfg['clusters'][0]['name'] = 'k8s-oci-lab'
-    cfg['contexts'][0]['name'] = 'k8s-oci-lab'
-    cfg['contexts'][0]['context']['cluster'] = 'k8s-oci-lab'
-    cfg['contexts'][0]['context']['user'] = 'svc_kubernetes'
-    cfg['current-context'] = 'k8s-oci-lab'
-    cfg['users'][0]['name'] = 'svc_kubernetes'
-    with open(cfg_path, 'w') as f:
-        yaml.dump(cfg, f, default_flow_style=False)
-    "
-  changed_when: false
-
 - name: Apply Flannel CNI network plugin
   ansible.builtin.command: kubectl apply -f https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
   environment:
@@ -66,7 +48,7 @@
     join_command: "{{ kubeadm_join_cmd.stdout }}"
 
 # ------------------------------------------------------------------------------
-# 2. Master-Exclusive SRE, DevOps & Database CLI Tools
+# 2. Ferramentas CLI de SRE, DevOps & Banco de Dados Exclusivas do Master
 # ------------------------------------------------------------------------------
 - name: Install PostgreSQL Client CLI on Master Node
   ansible.builtin.dnf:
